@@ -15,19 +15,20 @@ double rw_bench(size_t N, int nWarmups, int nRepets){
 	clock_t start, end;
 
 	int array[N];
+	int acc;
 
 	// Warmups
 	for(int t=0; t<nWarmups; t++) {
 		for(size_t i=0; i<N; i++) {
-			array[i]++;
+			acc += array[i];
 		}
 	}
 
 	// Measures
-	end = clock();
+	start = clock();
 	for(int t=0; t<nRepets; t++) {
-		for(size_t i=0; i<N; i++) {
-			array[i]++;
+		for (int i = 0; i < N; i++) {
+			acc += array[i];
 		}
 	}
 	end = clock();
@@ -51,7 +52,7 @@ int main(int argc, char *argv[]) {
 	double time = rw_bench(N, nWarmups, nRepets);
 
 	// Output results
-	printf("*** Read/write CPU benchmark ***\n");
+	printf("*** Read CPU benchmark ***\n");
 	printf("N=%ld, nWarmups=%d, nRepets=%d\n\n", N, nWarmups, nRepets);
 
 	printf("Time taken : %lf ms\n", time);

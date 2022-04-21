@@ -14,20 +14,39 @@ double rw_bench(size_t N, int nWarmups, int nRepets){
 	}
 	clock_t start, end;
 
-	int array[N];
+	int p[N], q[N];
+
+	// Generate permutations :
+	// Initialize p
+	for(size_t i=0; i<N; i++) {
+		p[i] = i;
+	}
+	//Shuffle p
+	for (int i=0; i<N-1; i++) {
+		size_t j = i + rand() / (RAND_MAX / (N - i) + 1);
+		int t = p[j];
+		p[j] = p[i];
+		p[i] = t;
+	}
+	// Ensure permutation contains a single cycle
+	int k = p[N - 1];
+	for (size_t i = 0; i < N; i++) {
+		k = q[k] = p[i];
+	}
 
 	// Warmups
 	for(int t=0; t<nWarmups; t++) {
 		for(size_t i=0; i<N; i++) {
-			array[i]++;
+			k = q[k];
 		}
 	}
 
 	// Measures
+	// (access all arrays elements w/ pointer chasing)
 	end = clock();
 	for(int t=0; t<nRepets; t++) {
 		for(size_t i=0; i<N; i++) {
-			array[i]++;
+			k = q[k];
 		}
 	}
 	end = clock();
