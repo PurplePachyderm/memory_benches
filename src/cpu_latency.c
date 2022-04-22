@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include<time.h>
 
 // Read/write bench
@@ -14,7 +15,8 @@ double rw_bench(size_t N, int nWarmups, int nRepets){
 	}
 	clock_t start, end;
 
-	int p[N], q[N];
+	int32_t * p = (int32_t*) malloc(N * sizeof(int));
+	int32_t * q = (int32_t*) malloc(N * sizeof(int));
 
 	// Generate permutations :
 	// Initialize p
@@ -24,7 +26,7 @@ double rw_bench(size_t N, int nWarmups, int nRepets){
 	//Shuffle p
 	for (int i=0; i<N-1; i++) {
 		size_t j = i + rand() / (RAND_MAX / (N - i) + 1);
-		int t = p[j];
+		int32_t t = p[j];
 		p[j] = p[i];
 		p[i] = t;
 	}
@@ -43,7 +45,7 @@ double rw_bench(size_t N, int nWarmups, int nRepets){
 
 	// Measures
 	// (access all arrays elements w/ pointer chasing)
-	end = clock();
+	start = clock();
 	for(int t=0; t<nRepets; t++) {
 		for(size_t i=0; i<N; i++) {
 			k = q[k];
@@ -51,7 +53,10 @@ double rw_bench(size_t N, int nWarmups, int nRepets){
 	}
 	end = clock();
 
-	return (double) (end - start) / CLOCKS_PER_SEC * 1000.;
+	free(p);
+	free(q);
+
+	return (double) (end - start) / CLOCKS_PER_SEC * 1000. / nRepets;
 };
 
 
@@ -68,12 +73,18 @@ int main(int argc, char *argv[]) {
 
 	// Run test
 	double time = rw_bench(N, nWarmups, nRepets);
+	double latency = (double) time / N * 1000000.;
 
 	// Output results
 	printf("*** Read/write CPU benchmark ***\n");
 	printf("N=%ld, nWarmups=%d, nRepets=%d\n\n", N, nWarmups, nRepets);
 
-	printf("Time taken : %lf ms\n", time);
+	printf("Time taken        : %lf ms\n", time);
+	printf("Latency           : %lf ns\n", latency);
 
-	return time;
+	FILE * fp = fopen("tmp.txt", "w");
+	fprintf(fp, "%lf\n", latency);
+	fclose(fp);
+
+	return latency;
 }

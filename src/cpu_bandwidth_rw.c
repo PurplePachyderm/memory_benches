@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include<time.h>
 
 // Read/write bench
@@ -14,25 +15,29 @@ double rw_bench(size_t N, int nWarmups, int nRepets){
 	}
 	clock_t start, end;
 
-	int array[N];
+	int32_t * array = (int32_t*) malloc(N * sizeof(int));
+	int32_t * copy = (int32_t*) malloc(N * sizeof(int));
 
 	// Warmups
 	for(int t=0; t<nWarmups; t++) {
 		for(size_t i=0; i<N; i++) {
-			array[i]++;
+			copy[i] = array[i];
 		}
 	}
 
 	// Measures
-	end = clock();
+	start = clock();
 	for(int t=0; t<nRepets; t++) {
-		for(size_t i=0; i<N; i++) {
-			array[i]++;
+		for (size_t i = 0; i<N; i++) {
+			copy[i] = array[i];
 		}
 	}
 	end = clock();
 
-	return (double) (end - start) / CLOCKS_PER_SEC * 1000.;
+	free(array);
+	free(copy);
+
+	return (double) (end - start) / CLOCKS_PER_SEC * 1000. / nRepets;
 };
 
 
@@ -49,12 +54,18 @@ int main(int argc, char *argv[]) {
 
 	// Run test
 	double time = rw_bench(N, nWarmups, nRepets);
+	double accessesPerSecond = (double) N / time * 1000.;
 
 	// Output results
-	printf("*** Read/write CPU benchmark ***\n");
+	printf("*** Read CPU benchmark ***\n");
 	printf("N=%ld, nWarmups=%d, nRepets=%d\n\n", N, nWarmups, nRepets);
 
 	printf("Time taken : %lf ms\n", time);
+	printf("Accesses per sec. : %lf\n", accessesPerSecond);
 
-	return time;
+	FILE * fp = fopen("tmp.txt", "w");
+	fprintf(fp, "%lf\n", accessesPerSecond);
+	fclose(fp);
+
+	return 0;
 }
