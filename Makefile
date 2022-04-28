@@ -3,7 +3,7 @@ CFLAGS=-O0
 
 cpu: cpu_bandwidth_rw cpu_bandwidth_r cpu_bandwidth_w cpu_latency
 
-gpu: gpu_bandwidth_rw gpu_latency
+gpu: gpu_bandwidth_rw gpu_latency gpu_bandwidth_transfers gpu_latency_internal
 
 
 # CPU
@@ -27,7 +27,12 @@ gpu_bandwidth_rw: src/gpu_bandwidth_rw.c
 gpu_latency: src/gpu_latency.c
 	$(CC) $(CFLAGS) -o gpu_latency src/gpu_latency.c
 
+gpu_bandwidth_transfers: src/gpu_bandwidth_transfers.c
+	$(CC) $(CFLAGS) -o gpu_bandwidth_transfers src/gpu_bandwidth_transfers.c
+
+gpu_latency_internal: src/gpu_latency_internal.c
+	$(CC) $(CFLAGS) -o gpu_latency_internal src/gpu_latency_internal.c
 
 # Phony
 clean:
-	rm cpu_bandwidth_rw cpu_bandwidth_r cpu_bandwidth_w cpu_latency gpu_bandwidth_rw gpu_latency
+	rm cpu_bandwidth_rw cpu_bandwidth_r cpu_bandwidth_w cpu_latency gpu_bandwidth_rw gpu_latency gpu_bandwidth_transfers gpu_latency_internal

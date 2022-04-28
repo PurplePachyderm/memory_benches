@@ -4,7 +4,7 @@
 #include<time.h>
 
 // Read/write bench
-double rw_bench(size_t N, int nWarmups, int nRepets){
+double latency_bench(size_t N, int nWarmups, int nRepets){
 	if(nWarmups < 0) {
 		fprintf(stderr,"Error: expected value >= 0 for nWarmups (got %d)\n", nWarmups);
 		exit(1);
@@ -15,37 +15,53 @@ double rw_bench(size_t N, int nWarmups, int nRepets){
 	}
 	clock_t start, end;
 
-	int32_t * array = (int32_t*) malloc(N * sizeof(int));
-	int32_t * copy = (int32_t*) malloc(N * sizeof(int));
+	int32_t * p = (int32_t*) malloc(N * sizeof(int));
+	int32_t * q = (int32_t*) malloc(N * sizeof(int));
 
-	#pragma omp target enter data map(to:array[0:N], copy[0:N])
+	// Generate permutations :
+	// Initialize p
+	for(size_t i=0; i<N; i++) {
+		p[i] = i;
+	}
+	//Shuffle p
+	for (int i=0; i<N-1; i++) {
+		size_t j = i + rand() / (RAND_MAX / (N - i) + 1);
+		int32_t t = p[j];
+		p[j] = p[i];
+		p[i] = t;
+	}
+	// Ensure permutation contains a single cycle
+	int kinit = p[N - 1];
+	for (size_t i = 0; i < N; i++) {
+		kinit = q[kinit] = p[i];
+	}
+
+	int32_t * k = (int32_t*) malloc(sizeof(int32_t));
+	*k = kinit;
+
+	#pragma omp target enter data map(to:q[0:N], k[0:1])
 	{
 	// Warmups
 	for(int t=0; t<nWarmups; t++) {
-		#pragma omp target update device(0) to(array[:N])
-		#pragma omp target teams distribute parallel for simd
 		for(size_t i=0; i<N; i++) {
-			copy[i] = array[i];
+			k = &(q[*k]);
 		}
-		#pragma omp target update device(0) from(copy[:N])
 	}
 
 	// Measures
+	// (access all arrays elements w/ pointer chasing)
 	start = clock();
 	for(int t=0; t<nRepets; t++) {
-		#pragma omp target update device(0) to(array[:N])
-		#pragma omp target teams distribute parallel for simd
-		for (size_t i = 0; i<N; i++) {
-			copy[i] = array[i];
+		for(size_t i=0; i<N; i++) {
+			k = &(q[*k]);
 		}
-		#pragma omp target update device(0) from(copy[:N])
 	}
 	end = clock();
 
 	}
 
-	free(array);
-	free(copy);
+	free(p);
+	free(q);
 
 	return (double) (end - start) / CLOCKS_PER_SEC * 1000. / nRepets;
 };
@@ -63,19 +79,19 @@ int main(int argc, char *argv[]) {
 	int nRepets = atol(argv[3]);
 
 	// Run test
-	double time = rw_bench(N, nWarmups, nRepets);
-	double accessesPerSecond = (double) N / time * 1000.;
+	double time = latency_bench(N, nWarmups, nRepets);
+	double latency = (double) time / N * 1000000.;
 
 	// Output results
-	printf("*** Read/write GPU benchmark ***\n");
+	printf("*** Latency GPU benchmark (internal) ***\n");
 	printf("N=%ld, nWarmups=%d, nRepets=%d\n\n", N, nWarmups, nRepets);
 
 	printf("Time taken        : %lf ms\n", time);
-	printf("Accesses per sec. : %lf\n\n", accessesPerSecond);
+	printf("Latency           : %lf ns\n\n", latency);
 
 	FILE * fp = fopen("tmp.txt", "w");
-	fprintf(fp, "%lf\n", accessesPerSecond);
+	fprintf(fp, "%lf\n", latency);
 	fclose(fp);
 
-	return accessesPerSecond;
+	return latency;
 }

@@ -89,11 +89,11 @@ int main(int argc, char *argv[]) {
 	double latency = (double) time / N * 1000000.;
 
 	// Output results
-	printf("*** Read/write CPU benchmark ***\n");
+	printf("*** Latency GPU benchmark ***\n");
 	printf("N=%ld, nWarmups=%d, nRepets=%d\n\n", N, nWarmups, nRepets);
 
 	printf("Time taken        : %lf ms\n", time);
-	printf("Latency           : %lf ns\n", latency);
+	printf("Latency           : %lf ns\n\n", latency);
 
 	FILE * fp = fopen("tmp.txt", "w");
 	fprintf(fp, "%lf\n", latency);

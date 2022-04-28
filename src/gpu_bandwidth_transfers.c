@@ -16,36 +16,26 @@ double rw_bench(size_t N, int nWarmups, int nRepets){
 	clock_t start, end;
 
 	int32_t * array = (int32_t*) malloc(N * sizeof(int));
-	int32_t * copy = (int32_t*) malloc(N * sizeof(int));
 
-	#pragma omp target enter data map(to:array[0:N], copy[0:N])
+	#pragma omp target enter data map(to:array[0:N])
 	{
 	// Warmups
 	for(int t=0; t<nWarmups; t++) {
 		#pragma omp target update device(0) to(array[:N])
-		#pragma omp target teams distribute parallel for simd
-		for(size_t i=0; i<N; i++) {
-			copy[i] = array[i];
-		}
-		#pragma omp target update device(0) from(copy[:N])
+		#pragma omp target update device(0) from(array[:N])
 	}
 
 	// Measures
 	start = clock();
 	for(int t=0; t<nRepets; t++) {
 		#pragma omp target update device(0) to(array[:N])
-		#pragma omp target teams distribute parallel for simd
-		for (size_t i = 0; i<N; i++) {
-			copy[i] = array[i];
-		}
-		#pragma omp target update device(0) from(copy[:N])
+		#pragma omp target update device(0) from(array[:N])
 	}
 	end = clock();
 
 	}
 
 	free(array);
-	free(copy);
 
 	return (double) (end - start) / CLOCKS_PER_SEC * 1000. / nRepets;
 };
@@ -67,7 +57,7 @@ int main(int argc, char *argv[]) {
 	double accessesPerSecond = (double) N / time * 1000.;
 
 	// Output results
-	printf("*** Read/write GPU benchmark ***\n");
+	printf("*** Read/write GPU benchmark (transfers only) ***\n");
 	printf("N=%ld, nWarmups=%d, nRepets=%d\n\n", N, nWarmups, nRepets);
 
 	printf("Time taken        : %lf ms\n", time);
